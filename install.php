@@ -633,7 +633,92 @@ Typecho_Db::set(\$db);
                     <input type="hidden" name="action" value="config" />
                     <p class="submit"><button type="submit" class="btn primary"><?php _e('确认, 开始安装 &raquo;'); ?></button></p>
                 </form>
-            <?php  else: ?>
+           list($prefixVersion, $suffixVersion) = explode('/', $currentVersion);
+
+/** 获取语言 */
+$lang = _r('lang', Typecho_Cookie::get('__typecho_lang'));
+$langs = Widget_Options_General::getLangs();
+
+if (empty($lang) && count($langs) > 1) {
+    foreach ($langs as $lang) {
+        if ('zh_CN' != $lang) {
+            break;
+        }
+    }
+}
+
+if (empty($lang)) {
+    $lang = 'zh_CN';
+}
+
+if ('zh_CN' != $lang) {
+    $dir = defined('__TYPECHO_LANG_DIR__') ? __TYPECHO_LANG_DIR__ : __TYPECHO_ROOT_DIR__ . '/usr/langs';
+    Typecho_I18n::setLang($dir . '/' . $lang . '.mo');
+}
+
+Typecho_Cookie::set('__typecho_lang', $lang);
+
+?><!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head lang="zh-CN">
+    <meta charset="<?php _e('UTF-8'); ?>" />
+	<title><?php _e('Typecho 安装程序'); ?></title>
+    <link rel="stylesheet" type="text/css" href="admin/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="admin/css/grid.css" />
+    <link rel="stylesheet" type="text/css" href="admin/css/style.css" />
+</head>
+<body>
+<div class="typecho-install-patch">
+    <h1>Typecho</h1>
+    <ol class="path">
+        <li<?php if (!isset($_GET['finish']) && !isset($_GET['config'])) : ?> class="current"<?php endif; ?>><span>1</span><?php _e('欢迎使用'); ?></li>
+        <li<?php if (isset($_GET['config'])) : ?> class="current"<?php endif; ?>><span>2</span><?php _e('初始化配置'); ?></li>
+        <li<?php if (isset($_GET['start'])) : ?> class="current"<?php endif; ?>><span>3</span><?php _e('开始安装'); ?></li>
+        <li<?php if (isset($_GET['finish'])) : ?> class="current"<?php endif; ?>><span>4</span><?php _e('安装成功'); ?></li>
+    </ol>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-mb-12 col-tb-8 col-tb-offset-2">
+            <div class="column-14 start-06 typecho-install">
+            <?php if (isset($_GET['finish'])) : ?>
+                <?php if (!@file_exists(__TYPECHO_ROOT_DIR__ . '/config.inc.php')) : ?>
+                <h1 class="typecho-install-title"><?php _e('安装失败!'); ?></h1>
+                <div class="typecho-install-body">
+                    <form method="post" action="?config" name="config">
+                    <p class="message error"><?php _e('您没有上传 config.inc.php 文件，请您重新安装！'); ?> <button class="btn primary" type="submit"><?php _e('重新安装 &raquo;'); ?></button></p>
+                    </form>
+                </div>
+                <?php elseif (!Typecho_Cookie::get('__typecho_config')): ?>
+                <h1 class="typecho-install-title"><?php _e('没有安装!'); ?></h1>
+                <div class="typecho-install-body">
+                    <form method="post" action="?config" name="config">
+                    <p class="message error"><?php _e('您没有执行安装步骤，请您重新安装！'); ?> <button class="btn primary" type="submit"><?php _e('重新安装 &raquo;'); ?></button></p>
+                    </form>
+                </div>
+                <?php else : ?>
+                    <?php
+                    $config = unserialize(base64_decode(Typecho_Cookie::get('__typecho_config')));
+                    Typecho_Cookie::delete('__typecho_config');
+                    $db = new Typecho_Db($config['adapter'], $config['prefix']);
+                    $db->addServer($config, Typecho_Db::READ | Typecho_Db::WRITE);
+                    Typecho_Db::set($db);
+                    ?>
+                <h1 class="typecho-install-title"><?php _e('安装成功!'); ?></h1>
+                <div class="typecho-install-body">
+                    <div class="message success">
+                    <?php if(isset($_GET['use_old']) ) : ?>
+                    <?php _e('您选择了使用原有的数据, 您的用户名和密码和原来的一致'); ?>
+                    <?php else : ?>
+                        <?php if (isset($_REQUEST['user']) && isset($_REQUEST['password'])): ?>
+                            <?php _e('您的用户名是'); ?>: <strong class="mono"><?php echo htmlspecialchars(_r('user')); ?></strong><br>
+                            <?php _e('您的密码是'); ?>: <strong class="mono"><?php echo htmlspecialchars(_r('password')); ?></strong>
+                        <?php endif;?>
+                    <?php endif;?>
+                    </div>
+
+                
+                <?php  else: ?>
                 <form method="post" action="?config">
                 <h1 class="typecho-install-title"><?php _e('欢迎使用 Typecho'); ?></h1>
                 <div class="typecho-install-body">
